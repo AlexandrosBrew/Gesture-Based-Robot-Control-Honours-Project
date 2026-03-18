@@ -5,7 +5,7 @@ The robotic and artificial intelligence industry is rapidly developing, particul
 
 ## Current Progress
 ![Static Badge](https://img.shields.io/badge/Software%20Progress%20-%20In%20Review%20-%20orange)
-![Static Badge](https://img.shields.io/badge/Hardware%20Progress%20-%20In%20Design%20-%20orange)
+![Static Badge](https://img.shields.io/badge/Hardware%20Progress%20-%203D%20Printing%20-%20orange)
 ![Static Badge](https://img.shields.io/badge/Integreation%20Progress%20-%20Waiting%20for%20Software%20and%20Hardware%20-%20red)
 
 ## Developers
