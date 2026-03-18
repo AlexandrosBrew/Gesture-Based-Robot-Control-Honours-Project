@@ -1,8 +1,9 @@
 import mediapipe as mp
 
 class baseControl:
-    def __init__(self):
+    def __init__(self, Comm):
         self.mp_hands = mp.solutions.hands
+        self.Comm = Comm
     
     def base_rotation_direction(self, hand_landmarks, handedness, left_thresh=0.4, right_thresh=0.6):
         """Decide base rotation direction based on wrist x-position."""
@@ -19,13 +20,11 @@ class baseControl:
         return direction
     
     def rotate_base_left(self):
-        # print("Rotating base LEFT")
-        pass
+        #Move up by 10
+        self.Comm.send_servo_command(3, 10)
 
     def rotate_base_right(self):
-        # print("Rotating base RIGHT")
-        pass
+        self.Comm.send_servo_command(3, -10)
 
     def stop_base_rotation(self):
-        # print("Stopping base rotation")
-        pass
+        self.Comm.send_servo_command(3, 0)

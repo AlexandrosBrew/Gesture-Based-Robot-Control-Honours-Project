@@ -6,7 +6,7 @@ from mediapipe.framework.formats import landmark_pb2
 class HandTracker:
     def __init__(self, detection_confidence=0.7, tracking_confidence=0.5):
         self.mp_hands = mp.solutions.hands
-        self.hands = self.mp_hands.Hands(min_detection_confidence=detection_confidence, min_tracking_confidence=tracking_confidence, max_num_hands=2, model_complexity=1, static_image_mode=False)
+        self.hands = self.mp_hands.Hands(min_detection_confidence=detection_confidence, min_tracking_confidence=tracking_confidence, max_num_hands=2, model_complexity=0, static_image_mode=False)
         self.mp_drawing = mp.solutions.drawing_utils
         # Initialize separate OneEuro filters for both hands
         # 21 landmarks × 3 coordinates (x, y, z)

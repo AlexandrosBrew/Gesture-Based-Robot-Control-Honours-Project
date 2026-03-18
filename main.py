@@ -8,18 +8,20 @@ from RobotControl.GripperControl import GripperControl
 from RobotControl.BaseControl import baseControl
 from RobotControl.ElbowControl import ElbowControl
 from RobotControl.WristControl import WristControl
-
+from Comms import Comm
 class HandTrackingController:
     def __init__(self):
+        self.comm = Comm()
         self.cap = vidCapture.Capture(width=640, height=480)
         self.tracker = tracking.HandTracker(detection_confidence=0.8, tracking_confidence=0.5)
         self.gripper_control = GripperControl()
-        self.base_control = baseControl()
-        self.elbow_control = ElbowControl()
-        self.wrist_control = WristControl()
+        self.base_control = baseControl(self.comm)
+        self.elbow_control = ElbowControl(self.comm)
+        self.wrist_control = WristControl(self.comm)
         self.control_mode = 'View'
         print("Starting hand tracking... Press 'q' to quit.")
         self.prev_time = time.time()
+
 
     def process_key(self, key):
         if key == ord('1'):
@@ -49,27 +51,35 @@ class HandTrackingController:
             cv2.line(frame, (0, int(h*0.3)), (w*2, int(h*0.3)), (0, 0, 255), 2)
             cv2.line(frame, (0, int(h*0.45)), (w*2, int(h*0.45)), (0, 0, 255), 2)
 
+    def process_left_hand(self, frame, hand_landmarks, handedness):
+        distance = self.gripper_control.FingerDistance(hand_landmarks, handedness)
+        angle = self.gripper_control.normalise_distance(distance)
+        self.gripper_control.draw_gripper_status(frame, angle)
+        
+        self.comm.send_servo_command(0, angle)  # Send gripper angle to Arduino
+        
+        direction = self.base_control.base_rotation_direction(hand_landmarks, handedness)
+        cv2.putText(frame, f"Base: {direction}", (10, 80),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 0), 2)
+
+    def process_right_hand(self, frame, hand_landmarks, handedness):
+        distance = self.elbow_control.elbow_angle(hand_landmarks, handedness)
+        angle = self.elbow_control.normalise_distance(distance)
+        self.elbow_control.draw_elbow_status(frame, angle)
+        self.comm.send_servo_command(2, angle)  # Send elbow angle to Arduino
+        direction = self.wrist_control.wrist_position(hand_landmarks, handedness)
+        cv2.putText(frame, f"Wrist: {direction}", (10, 80),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 0), 2)
+        
     def process_hand(self, frame, hand_landmarks, handedness):
         if self.control_mode != 'Control':
             return
 
         if handedness.classification[0].label == "Left":
-            distance = self.gripper_control.FingerDistance(hand_landmarks, handedness)
-            angle = self.gripper_control.normalise_distance(distance)
-            self.gripper_control.draw_gripper_status(frame, angle)
-
-            direction = self.base_control.base_rotation_direction(hand_landmarks, handedness)
-            cv2.putText(frame, f"Base: {direction}", (10, 80),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 0), 2)
+            self.process_left_hand(frame, hand_landmarks, handedness)
 
         elif handedness.classification[0].label == "Right":
-            distance = self.elbow_control.elbow_angle(hand_landmarks, handedness)
-            angle = self.elbow_control.normalise_distance(distance)
-            self.elbow_control.draw_elbow_status(frame, angle)
-
-            direction = self.wrist_control.wrist_position(hand_landmarks, handedness)
-            cv2.putText(frame, f"Wrist: {direction}", (10, 80),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 0), 2)
+            self.process_right_hand(frame, hand_landmarks, handedness)
 
         self.draw_visual_markers(frame, handedness)
         self.tracker.draw_landmarks(frame, hand_landmarks, handedness)
@@ -94,15 +104,15 @@ class HandTrackingController:
 
             self.draw_mode(frame)
             # Calculate and draw FPS (top-right)
-            curr_time = time.time()
-            fps = 1.0 / (curr_time - self.prev_time) if (curr_time - self.prev_time) > 0 else 0.0
-            self.prev_time = curr_time
-            h, w = frame.shape[:2]
-            fps_text = f"FPS: {fps:.1f}"
-            (text_w, text_h), _ = cv2.getTextSize(fps_text, cv2.FONT_HERSHEY_SIMPLEX, 0.7, 2)
-            x = w - text_w - 10
-            y = 30
-            cv2.putText(frame, fps_text, (x, y), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+            # curr_time = time.time()
+            # fps = 1.0 / (curr_time - self.prev_time) if (curr_time - self.prev_time) > 0 else 0.0
+            # self.prev_time = curr_time
+            # h, w = frame.shape[:2]
+            # fps_text = f"FPS: {fps:.1f}"
+            # (text_w, text_h), _ = cv2.getTextSize(fps_text, cv2.FONT_HERSHEY_SIMPLEX, 0.7, 2)
+            # x = w - text_w - 10
+            # y = 30
+            # cv2.putText(frame, fps_text, (x, y), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
             cv2.imshow("Frame", frame)
 
         self.cap.release()

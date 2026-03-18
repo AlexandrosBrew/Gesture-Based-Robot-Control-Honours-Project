@@ -1,9 +1,10 @@
 import mediapipe as mp
 
 class WristControl:
-    def __init__(self):
+    def __init__(self, Comm):
         self.mp_hands = mp.solutions.hands
-    
+        self.Comm = Comm
+
     def wrist_position(self, hand_landmarks, handedness, up_thresh=0.4, down_thresh=0.6):
         """Get wrist position coordinates."""
         wrist = hand_landmarks.landmark[self.mp_hands.HandLandmark.WRIST]
@@ -17,13 +18,14 @@ class WristControl:
             position = "CENTER"
             self.stop_wrist_movement()
         return position
-    
+
     def move_wrist_up(self):
-        # print("Moving wrist UP")
-        pass
+        #Move up by 10
+        self.Comm.send_servo_command(1, 10)
+
     def move_wrist_down(self):
-        # print("Moving wrist DOWN")
-        pass
+        self.Comm.send_servo_command(1, -10)
+
     def stop_wrist_movement(self):
         # print("Stopping wrist movement")
-        pass
+        self.Comm.send_servo_command(1, 0)

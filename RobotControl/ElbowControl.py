@@ -2,8 +2,9 @@ import math
 import cv2
 
 class ElbowControl:
-    def __init__(self):
+    def __init__(self, Comm):
         self.previous_angle = 0
+        self.comm = Comm
 
     def elbow_angle(self, handLandmarks, handedness):
         if handedness.classification[0].label == "Right": 
@@ -28,6 +29,7 @@ class ElbowControl:
             target_angle = 0  # Fully closed
         smoothed_angle = int(alpha * target_angle + (1 - alpha) * self.previous_angle)
         self.previous_angle = smoothed_angle
+        self.comm.send_servo_command(2, smoothed_angle)  # Send elbow angle to Arduino
         return smoothed_angle
     
     def draw_elbow_status(self, frame, angle, position=(200, 50)):
