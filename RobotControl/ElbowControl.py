@@ -1,6 +1,6 @@
 import math
 import cv2
-
+from RobotControl.utils import angle_to_microseconds
 class ElbowControl:
     def __init__(self, Comm):
         self.previous_angle = 0
@@ -30,7 +30,7 @@ class ElbowControl:
         smoothed_angle = int(alpha * target_angle + (1 - alpha) * self.previous_angle)
         self.previous_angle = smoothed_angle
         self.comm.send_servo_command(2, smoothed_angle)  # Send elbow angle to Arduino
-        return smoothed_angle
+        return angle_to_microseconds(smoothed_angle)
     
     def draw_elbow_status(self, frame, angle, position=(200, 50)):
         """Overlay elbow status on the video frame."""

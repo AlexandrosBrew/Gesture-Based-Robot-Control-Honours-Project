@@ -27,7 +27,7 @@ class Comm:
             if not (0 <= servo_id <= 3):
                 raise ValueError("Invalid servo ID")
 
-            if not (0 <= position_us <= 2500):
+            if not (500 <= position_us <= 2500):
                 raise ValueError("Position out of safe servo range")
 
             header = 0xFF
@@ -43,7 +43,7 @@ class Comm:
 
             self.arduino.write(packet)
         except Exception as e:
-            print("Error sending command:", e)
+            print(f"Error sending {servo_id} command: {e}")
 
 class packetTesting:
     def __init__(self, Comm):
@@ -83,11 +83,10 @@ class packetTesting:
         for b in packet:
             self.arduino.write(bytes([b]))
             time.sleep(0.05)
-        
+
         print("-----Fragmented Packet Sent-----\n")
         print("Packet Bytes:", list(packet))
         print("--------------------------------\n")
-
 
 if __name__ == "__main__":
     comm = Comm()

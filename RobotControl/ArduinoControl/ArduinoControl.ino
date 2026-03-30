@@ -23,8 +23,23 @@ uint8_t id;
 uint8_t pos_l, pos_h;
 uint8_t checksum;
 
+uint16_t currGripperPosition = 0;
+uint16_t currWristPosition = 0;
+uint16_t currElbowPosition = 0;
+uint16_t currBasePosition = 0;
+
+int GripperPin = 9; 
+int WristPin = 10;   
+int ElbowPin = 11;   
+int BasePin = 12;    
+Servo Servos[4];
+int ServoPins[4] = {GripperPin, WristPin, ElbowPin, BasePin};
+
 void setup() {
   Serial.begin(115200);
+  for (int i = 0; i < 4; i++) {
+    Servos[i].attach(ServoPins[i]);
+  }
 }
 
 void loop() {
@@ -84,15 +99,26 @@ void processCommand(uint8_t id, int16_t position) {
   switch (id) {
     case 0:
       Serial.println("Gripper: " + String(position));
+      currGripperPosition = position;
       break;
     case 1:
       Serial.println("Wrist: " + String(position));
+      currWristPosition = position;
       break;
     case 2:
       Serial.println("Elbow: " + String(position));
+      currElbowPosition = position;
       break;
     case 3:
       Serial.println("Base: " + String(position));
+      currBasePosition = position;
       break;
+  }
+}
+
+void moveServo(uint8_t id, int16_t position, uint16_t currentPosition) {
+  if (currentPosition != position) {
+    Serial.println("Moving servo " + String(id) + " to position " + String(position));
+    Servos[id].writeMicroseconds(position);
   }
 }

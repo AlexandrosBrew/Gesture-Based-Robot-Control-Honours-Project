@@ -1,5 +1,6 @@
 import math
 import cv2
+from RobotControl.utils import angle_to_microseconds
 
 class GripperControl:
     def __init__(self):
@@ -29,8 +30,7 @@ class GripperControl:
             target_angle = 0  # Fully closed
         smoothed_angle = int(alpha * target_angle + (1 - alpha) * self.previous_angle)
         self.previous_angle = smoothed_angle
-        return smoothed_angle
-
+        return angle_to_microseconds(smoothed_angle)
     def draw_gripper_status(self, frame, angle, position=(200, 450)):
         """Overlay gripper status on the video frame."""
         status_text = f"Gripper Angle: {angle} degrees"
