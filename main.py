@@ -26,6 +26,10 @@ class HandTrackingController:
         self.control_mode = 'View'
         print("Starting hand tracking... Press 'q' to quit.")
         self.prev_time = time.time()
+        self.base_angle = 1500;
+        self.wrist_angle = 1500;
+        self.elbow_angle = 1000;
+        self.gripper_angle = 500;
 
     def process_key(self, key):
         if key == ord('1'):
@@ -52,32 +56,30 @@ class HandTrackingController:
         if handedness.classification[0].label == "Left":
             # Visual Left/center/right zones
             cv2.line(frame, (int(w*0.5), 0), (int(w*0.5), h), (0, 0, 255), 2)
-            cv2.line(frame, (int(w*0.65), 0), (int(w*0.65), h), (0, 0, 255), 2)
-            cv2.line(frame, (int(w*0.8), 0), (int(w*0.8), h), (0, 0, 255), 2)
+            cv2.line(frame, (int(w*0.65), 0), (int(w*0.65), h), (0, 255, 250), 2)
+            cv2.line(frame, (int(w*0.8), 0), (int(w*0.8), h), (255, 0, 0), 2)
         elif handedness.classification[0].label == "Right":
             # Visual Up/center/down zones
-            cv2.line(frame, (0, int(h*0.3)), (w*2, int(h*0.3)), (0, 0, 255), 2)
-            cv2.line(frame, (0, int(h*0.45)), (w*2, int(h*0.45)), (0, 0, 255), 2)
+            cv2.line(frame, (int(w*0.5), 0), (int(w*0.5), h), (0, 0, 255), 2)
+            cv2.line(frame, (int(w*0.65), 0), (int(w*0.65), h), (0, 255, 0), 2)
+            cv2.line(frame, (int(w*0.8), 0), (int(w*0.8), h), (255, 0, 0), 2)
 
     def process_left_hand(self, frame, hand_landmarks, handedness):
         distance = self.gripper_control.FingerDistance(hand_landmarks, handedness)
-        angle = self.gripper_control.normalise_distance(distance)
-        self.gripper_control.draw_gripper_status(frame, angle)
+        self.gripper_angle = self.gripper_control.normalise_distance(distance)
+        self.gripper_control.draw_gripper_status(frame, self.gripper_angle)
         
-        self.comm.send_servo_command(0, int(angle))  # Send gripper angle to Arduino
-        
-        direction = self.base_control.update_base_position(hand_landmarks)
-        cv2.putText(frame, f"Base: {direction}", (10, 80),
+        self.comm.send_servo_command(0, int(self.gripper_angle))  # Send gripper angle to Arduino
+        self.base_angle = self.base_control.update_base_position(hand_landmarks)
+        cv2.putText(frame, f"Base: {self.base_angle:.2f}", (10, 80),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 0), 2)
 
     def process_right_hand(self, frame, hand_landmarks, handedness):
         distance = self.elbow_control.elbow_angle(hand_landmarks, handedness)
-        elbow_angle = self.elbow_control.normalise_distance(distance)
-        self.elbow_control.draw_elbow_status(frame, elbow_angle)
-        self.comm.send_servo_command(2, int(elbow_angle))  # Send elbow angle to Arduino
-        base_angle = self.wrist_control.wrist_position(hand_landmarks, handedness)
-        
-        cv2.putText(frame, f"Wrist: {base_angle}", (10, 80),
+        self.elbow_angle = self.elbow_control.normalise_distance(distance)
+        self.elbow_control.draw_elbow_status(frame, self.elbow_angle)
+        self.wrist_angle = self.wrist_control.update_wrist_position(hand_landmarks)
+        cv2.putText(frame, f"Wrist: {self.wrist_angle:.2f}", (10, 80),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 0), 2)
 
     def process_hand(self, frame, hand_landmarks, handedness):
@@ -96,22 +98,24 @@ class HandTrackingController:
             cv2.putText(frame, f"Gesture: {gesture_name}", (10, 120),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 0), 2)
             #Move robot to home position
-            home_position = [0, 90, 90, 90]
+            home_position = [150, 0, 100, True]  # Example home position (x, y, z, elbow_up)
             ik = self.kinematics_solver.inverse(home_position[0], home_position[1], home_position[2], home_position[3])
-            if ik:
-                limits = self.kinematics_solver.LIMITS
-        
-                # Map each joint using its specific limits
-                pwm_base     = map_angle_to_pwm(ik.theta1, *limits["theta1"])
-                pwm_shoulder = map_angle_to_pwm(ik.theta2, *limits["theta2"])
-                pwm_elbow    = map_angle_to_pwm(ik.theta3, *limits["theta3"])
-                pwm_wrist    = map_angle_to_pwm(ik.theta4, *limits["theta4"])
+            # Map each joint using its specific limits
+            if ik is not None:
+                pwm_base = angle_to_microseconds(ik.theta1)  
+                pwm_wrist = angle_to_microseconds(ik.theta2)  
+                pwm_elbow = angle_to_microseconds(ik.theta3)  
+                self.base_angle = pwm_base
+                self.wrist_angle = pwm_wrist
+                self.elbow_angle = pwm_elbow
+                self.gripper_angle = 500  # Fully closed for home position
 
-                # Send the mapped PWM values
-                self.comm.send_servo_command(0, pwm_base)
-                self.comm.send_servo_command(1, pwm_shoulder)
-                self.comm.send_servo_command(2, pwm_elbow)
-                self.comm.send_servo_command(3, pwm_wrist)
+    def sendcommands(self):
+        self.comm.send_servo_command(0, int(self.gripper_angle))  # Gripper
+        self.comm.send_servo_command(1, int(self.wrist_angle))    # Wrist
+        self.comm.send_servo_command(2, int(self.elbow_angle))    # Elbow
+        self.comm.send_servo_command(3, int(self.base_angle))     # Base
+
     def run(self):
         while True:
             success, frame = self.cap.read_frame()
@@ -147,6 +151,8 @@ class HandTrackingController:
             # y = 30
             # cv2.putText(frame, fps_text, (x, y), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
             cv2.imshow("Frame", frame)
+            # send commands to Arduino at the end of each loop iteration
+            self.sendcommands()
 
         self.cap.release()
         cv2.destroyAllWindows()

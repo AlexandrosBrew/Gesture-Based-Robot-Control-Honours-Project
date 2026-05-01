@@ -33,7 +33,7 @@ class GripperControl:
         return angle_to_microseconds(smoothed_angle)
     def draw_gripper_status(self, frame, angle, position=(200, 450)):
         """Overlay gripper status on the video frame."""
-        status_text = f"Gripper Angle: {angle} degrees"
+        status_text = f"Gripper Angle: {angle:.2f} degrees"
         cv2.putText(frame, status_text, position,
                     cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
 

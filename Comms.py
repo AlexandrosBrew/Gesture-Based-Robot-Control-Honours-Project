@@ -10,7 +10,7 @@ class Comm:
         self.arduino = None
         try:
             self.arduino = serial.Serial(
-                port='/dev/cu.usbmodem1301',
+                port='/dev/cu.usbmodem1101',
                 baudrate=115200,
                 timeout=0.1
             )

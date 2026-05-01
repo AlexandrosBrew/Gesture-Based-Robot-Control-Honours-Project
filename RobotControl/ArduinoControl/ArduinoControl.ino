@@ -28,10 +28,10 @@ uint16_t currWristPosition = 0;
 uint16_t currElbowPosition = 0;
 uint16_t currBasePosition = 0;
 
-int GripperPin = 9; 
-int WristPin = 10;   
-int ElbowPin = 11;   
-int BasePin = 12;    
+int GripperPin = 5; 
+int WristPin = 3;   
+int ElbowPin = 2;   
+int BasePin = 6;    
 Servo Servos[4];
 int ServoPins[4] = {GripperPin, WristPin, ElbowPin, BasePin};
 
@@ -40,12 +40,16 @@ void setup() {
   for (int i = 0; i < 4; i++) {
     Servos[i].attach(ServoPins[i]);
   }
+  //Set initial positions
+  Servos[0].writeMicroseconds(500); // Gripper (Closed)
+  Servos[1].writeMicroseconds(1500); // Wrist (up)
+  Servos[2].writeMicroseconds(1000); // Elbow (up)
+  Servos[3].writeMicroseconds(1500); // Base (up)
 }
 
 void loop() {
   while (Serial.available()) {
     uint8_t byte_in = Serial.read();
-
     switch (state) {
       case WAIT_HEADER:
         if (byte_in == HEADER) {
@@ -99,18 +103,27 @@ void processCommand(uint8_t id, int16_t position) {
   switch (id) {
     case 0:
       Serial.println("Gripper: " + String(position));
+      // Map to servo range (500-1300)
+      position = map(position, 500, 2500, 500, 1300);
+      moveServo(id, position, currGripperPosition);
       currGripperPosition = position;
       break;
     case 1:
       Serial.println("Wrist: " + String(position));
+      moveServo(id, position, currWristPosition);
       currWristPosition = position;
       break;
     case 2:
       Serial.println("Elbow: " + String(position));
+      position = map(position, 500, 2500, 1000, 1700); // Elbow range
+      moveServo(id, position, currElbowPosition);
       currElbowPosition = position;
       break;
     case 3:
       Serial.println("Base: " + String(position));
+      // Base rotates full 360, so we can map 500-2500 to 0-360 degrees
+      position = map(position, 500, 2500, 500, 2500);
+      moveServo(id, position, currBasePosition);
       currBasePosition = position;
       break;
   }

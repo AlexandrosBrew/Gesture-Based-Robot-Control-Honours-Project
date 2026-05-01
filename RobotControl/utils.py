@@ -1,4 +1,14 @@
 
+def set_home_position(Comm):
+    calibrated_Home = {
+        0: 1500,  # Base
+        1: 1500,  # Shoulder
+        2: 1500,  # Elbow
+        3: 1500   # Wrist
+    }
+    for id, position in calibrated_Home.items():
+        Comm.send_servo_command(id, position)
+
 def angle_to_microseconds(angle):
     """Helper to convert 0-180 degrees to 500-2500 microseconds."""
     return 500 + (angle / 180.0) * 2000
@@ -25,6 +35,6 @@ def map_angle_to_pwm(angle, angle_min, angle_max):
     
     # Linear mapping formula
     pwm = ((angle - angle_min) * (pwm_max - pwm_min) / (angle_max - angle_min)) + pwm_min
-    
+
     # Constrain the value to stay within 500-2500
     return max(pwm_min, min(pwm_max, int(pwm)))

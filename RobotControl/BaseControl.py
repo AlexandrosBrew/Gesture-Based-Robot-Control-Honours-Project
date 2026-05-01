@@ -26,10 +26,4 @@ class baseControl:
         # 3. Clamp the angle to physical servo limits (0 to 180 degrees)
         self.current_angle = max(0.0, min(180.0, self.current_angle))
 
-        # 4. Map degrees (0-180) to microseconds (500-2500) for your Arduino validation layer
-        target_us = angle_to_microseconds(self.current_angle)
-        
-        # 5. Send command
-        self.Comm.send_servo_command(3, int(target_us))
-        
-        return f"Angle: {int(self.current_angle)}"
+        return angle_to_microseconds(self.current_angle)
